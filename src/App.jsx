@@ -7,6 +7,7 @@ const App = () => {
   const [selectedResult, setSelectedResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [noResults, setNoResults] = useState(false);
+  const [cachedResults, setCachedResults] = useState([]);  // ✅ Store for going back
 
   const handleSearch = async () => {
     if (!query.trim()) return;
@@ -25,8 +26,15 @@ const App = () => {
       const data = await response.json();
       const results = data.result || [];
 
-      if (results.length === 0) setNoResults(true);
-      else setMatchedQuestions(results);
+      if (results.length === 0) {
+        setMatchedQuestions([]);
+        setCachedResults([]);
+        setNoResults(true);
+      } else {
+        setMatchedQuestions(results);
+        setCachedResults(results); // ✅ Cache results
+        setNoResults(false);
+      }
     } catch (error) {
       console.error('Error:', error);
     }
@@ -34,20 +42,24 @@ const App = () => {
     setLoading(false);
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
+
   const handleSelect = (result) => {
     setSelectedResult(result);
-    setMatchedQuestions([]);
-    setNoResults(false);
   };
 
   const handleBack = () => {
     setSelectedResult(null);
-    setNoResults(false);
+    setMatchedQuestions(cachedResults);  // ✅ Restore previous results
   };
 
   return (
     <div className="flex h-screen bg-gray-900 text-white">
-      {/* Left Sidebar */}
+      {/* Sidebar */}
       <div className="w-60 bg-gray-800 p-4 space-y-4">
         <h2 className="text-lg font-bold border-b border-gray-700 pb-2">Categories</h2>
         {[
@@ -61,7 +73,7 @@ const App = () => {
         ))}
       </div>
 
-      {/* Main Content */}
+      {/* Main */}
       <div className="flex-1 p-8 flex flex-col items-center">
         <h1 className="text-3xl font-bold mb-6">CA Final Inventory Q&A</h1>
 
@@ -70,6 +82,7 @@ const App = () => {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={handleKeyDown}
             placeholder="Search..."
             className="flex-grow p-3 text-black rounded-l-md border-2 border-r-0 border-gray-400"
           />
@@ -81,17 +94,9 @@ const App = () => {
           </button>
         </div>
 
-        {/* No Results */}
-        {noResults && (
-          <div className="mt-4 text-red-400 text-sm">No results found.</div>
-        )}
+        {loading && <div className="mt-4 text-gray-300 text-sm">Searching...</div>}
+        {noResults && <div className="mt-4 text-red-400 text-sm">No results found.</div>}
 
-        {/* Loading */}
-        {loading && (
-          <div className="mt-4 text-gray-300 text-sm">Searching...</div>
-        )}
-
-        {/* Matched Results List */}
         {!selectedResult && matchedQuestions.length > 0 && (
           <div className="mt-6 w-full max-w-3xl space-y-3">
             <h2 className="text-lg font-semibold mb-2">Matched Questions:</h2>
@@ -107,7 +112,6 @@ const App = () => {
           </div>
         )}
 
-        {/* Full Result */}
         {selectedResult && (
           <div className="mt-6 w-full max-w-4xl space-y-3 bg-gray-800 p-6 rounded-lg">
             <button
@@ -116,7 +120,6 @@ const App = () => {
             >
               ← Back to Results
             </button>
-
             <div><strong>Chapter:</strong> {selectedResult.chapter}</div>
             <div><strong>Source:</strong> {selectedResult.sourceDetails}</div>
             <div><strong>Concept:</strong> {selectedResult.conceptTested}</div>

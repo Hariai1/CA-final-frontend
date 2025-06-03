@@ -12,9 +12,7 @@ function App() {
 
     const response = await fetch("https://ca-final-backend.onrender.com/search", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ query }),
     });
 
@@ -23,9 +21,9 @@ function App() {
     setLoading(false);
   };
 
-  const handleSelect = (result) => {
-    setSelectedResult(result);
-    setResults([]); // Hide matched list after selection
+  const handleSelect = (item) => {
+    setSelectedResult(item);
+    setResults([]);
   };
 
   const truncateQuestion = (text) => {
@@ -34,9 +32,9 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center px-4">
+    <div className="h-screen flex items-center justify-center bg-gray-900 text-white px-4">
       <div className="w-full max-w-3xl">
-        <h1 className="text-3xl font-bold text-center mb-6">CA Final FR – Inventory Q&A Tool</h1>
+        <h1 className="text-3xl font-bold text-center mb-8">CA Final FR – Inventory Q&A Tool</h1>
 
         <div className="flex justify-center mb-6">
           <input

@@ -1,96 +1,100 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
 
 function App() {
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [selectedResult, setSelectedResult] = useState(null);
+  const [viewingDetails, setViewingDetails] = useState(false);
   const [noResults, setNoResults] = useState(false);
 
   const handleSearch = async () => {
-    setSelectedResult(null);
-    setNoResults(false);
     if (!query.trim()) return;
 
     try {
       const response = await fetch("https://ca-final-backend.onrender.com/search", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query }),
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ query })
       });
 
       const data = await response.json();
-      const matches = data?.result || [];
-
-      if (matches.length === 0) {
-        setNoResults(true);
+      if (data.result && data.result.length > 0) {
+        setResults(data.result);
+        setNoResults(false);
+        setViewingDetails(false);
+        setSelectedResult(null);
       } else {
-        setResults(matches);
+        setResults([]);
+        setNoResults(true);
+        setViewingDetails(false);
+        setSelectedResult(null);
       }
     } catch (error) {
       console.error("Search error:", error);
+      setResults([]);
+      setNoResults(true);
     }
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter") handleSearch();
   };
 
   const handleSelect = (item) => {
     setSelectedResult(item);
-    setResults([]);
+    setViewingDetails(true);
   };
 
   const handleBack = () => {
     setSelectedResult(null);
+    setViewingDetails(false);
+  };
+
+  const getFirstWords = (text, count) => {
+    return text.split(" ").slice(0, count).join(" ") + "...";
   };
 
   return (
     <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center px-4">
-      <h1 className="text-2xl md:text-3xl font-bold mb-8 text-center">
-        CA Final FR – Inventory Q&A Tool
-      </h1>
+      <h1 className="text-3xl font-bold mb-6 text-center">CA Final FR – Inventory Q&A Tool</h1>
 
-      <div className="flex w-full max-w-xl items-center space-x-2 mb-6">
+      <div className="flex flex-col sm:flex-row items-center justify-center w-full max-w-2xl gap-2 mb-6">
         <input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={handleKeyDown}
+          onKeyDown={(e) => e.key === "Enter" && handleSearch()}
           placeholder="Type your search (e.g., 'valuation of inventory')"
-          className="flex-grow px-4 py-2 rounded border border-gray-400 text-black"
+          className="w-full px-4 py-2 text-black rounded-md"
         />
         <button
           onClick={handleSearch}
-          className="px-4 py-2 bg-white text-black font-semibold rounded"
+          className="bg-white text-black px-4 py-2 rounded-md"
         >
           Search
         </button>
       </div>
 
-      {noResults && (
-        <p className="text-red-400 text-sm mt-4">No results found. Try different keywords.</p>
-      )}
+      {noResults && <p className="text-red-400 mt-4">No results found.</p>}
 
-      {!selectedResult && results.length > 0 && (
-        <div className="flex flex-col items-start space-y-3 w-full max-w-3xl">
-          <p className="text-sm text-gray-400 mb-2">Multiple results found. Select one:</p>
+      {!viewingDetails && results.length > 0 && (
+        <div className="flex flex-col items-center gap-2 w-full max-w-3xl">
+          <p className="mb-2 text-sm text-gray-400">Multiple results found. Please select one:</p>
           {results.map((item, idx) => (
             <button
               key={idx}
               onClick={() => handleSelect(item)}
-              className="text-left bg-gray-800 px-4 py-2 rounded hover:bg-gray-700 transition w-full"
+              className="bg-gray-700 hover:bg-gray-600 w-full text-left px-4 py-2 rounded-md text-sm"
             >
-              {item.question.split(" ").slice(0, 10).join(" ")}...
+              {getFirstWords(item.question, 10)}
             </button>
           ))}
         </div>
       )}
 
-      {selectedResult && (
-        <div className="bg-gray-800 p-6 rounded w-full max-w-3xl space-y-4 mt-6">
+      {viewingDetails && selectedResult && (
+        <div className="bg-gray-800 rounded-md shadow-md p-6 mt-6 w-full max-w-3xl">
           <button
             onClick={handleBack}
-            className="text-sm text-blue-400 underline hover:text-blue-300"
+            className="mb-4 text-sm text-blue-400 hover:underline"
           >
             ← Back to results
           </button>

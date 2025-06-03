@@ -1,112 +1,105 @@
-import React, { useState } from 'react';
+import { useState } from "react";
+import "./index.css";
 
 function App() {
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [selectedResult, setSelectedResult] = useState(null);
-  const [viewingDetails, setViewingDetails] = useState(false);
-  const [noResults, setNoResults] = useState(false);
+  const [noResult, setNoResult] = useState(false);
 
   const handleSearch = async () => {
-    if (!query.trim()) return;
-
-    try {
-      const response = await fetch("https://ca-final-backend.onrender.com/search", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ query })
-      });
-
-      const data = await response.json();
-      if (data.result && data.result.length > 0) {
-        setResults(data.result);
-        setNoResults(false);
-        setViewingDetails(false);
-        setSelectedResult(null);
-      } else {
-        setResults([]);
-        setNoResults(true);
-        setViewingDetails(false);
-        setSelectedResult(null);
-      }
-    } catch (error) {
-      console.error("Search error:", error);
-      setResults([]);
-      setNoResults(true);
-    }
-  };
-
-  const handleSelect = (item) => {
-    setSelectedResult(item);
-    setViewingDetails(true);
-  };
-
-  const handleBack = () => {
+    const res = await fetch("https://ca-final-backend.onrender.com/search", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query }),
+    });
+    const data = await res.json();
+    setResults(data.result || []);
     setSelectedResult(null);
-    setViewingDetails(false);
+    setNoResult((data.result || []).length === 0);
   };
 
-  const getFirstWords = (text, count) => {
-    return text.split(" ").slice(0, count).join(" ") + "...";
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") handleSearch();
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center px-4">
-      <h1 className="text-3xl font-bold mb-6 text-center">CA Final FR – Inventory Q&A Tool</h1>
+    <div className="flex min-h-screen text-white">
+      {/* Main content area */}
+      <div className="flex flex-col justify-center items-center flex-grow p-8">
+        <h1 className="text-2xl md:text-3xl font-bold mb-6 text-center">
+          CA Final FR – Inventory Q&A Tool
+        </h1>
 
-      <div className="flex flex-col sm:flex-row items-center justify-center w-full max-w-2xl gap-2 mb-6">
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-          placeholder="Type your search (e.g., 'valuation of inventory')"
-          className="w-full px-4 py-2 text-black rounded-md"
-        />
-        <button
-          onClick={handleSearch}
-          className="bg-white text-black px-4 py-2 rounded-md"
-        >
-          Search
-        </button>
+        {!selectedResult && (
+          <>
+            <div className="flex w-full max-w-xl space-x-2 mb-4">
+              <input
+                className="w-full px-4 py-2 rounded text-black"
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Type your search (e.g., 'valuation of inventory')"
+              />
+              <button
+                onClick={handleSearch}
+                className="px-4 py-2 bg-white text-black rounded"
+              >
+                Search
+              </button>
+            </div>
+            {noResult && <p className="text-red-400 mt-4">No results found.</p>}
+            <div className="space-y-2 max-w-xl w-full mt-4">
+              {results.map((item, index) => (
+                <button
+                  key={index}
+                  onClick={() => setSelectedResult(item)}
+                  className="bg-gray-800 p-3 rounded w-full text-left hover:bg-gray-700"
+                >
+                  {item.question.split(" ").slice(0, 10).join(" ")}...
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+
+        {selectedResult && (
+          <div className="max-w-2xl w-full bg-gray-800 p-6 rounded mt-6">
+            <button
+              onClick={() => setSelectedResult(null)}
+              className="mb-4 text-sm text-blue-400 hover:underline"
+            >
+              ← Back to Results
+            </button>
+            <p><strong>Chapter:</strong> {selectedResult.chapter}</p>
+            <p><strong>Source:</strong> {selectedResult.sourceDetails}</p>
+            <p><strong>Concept:</strong> {selectedResult.conceptTested}</p>
+            <p><strong>Concept Summary:</strong> {selectedResult.conceptSummary}</p>
+            <p><strong>Question:</strong> {selectedResult.question}</p>
+            <p><strong>Answer:</strong> {selectedResult.answer}</p>
+            <p><strong>How to Approach:</strong> {selectedResult.howToApproach}</p>
+          </div>
+        )}
       </div>
 
-      {noResults && <p className="text-red-400 mt-4">No results found.</p>}
-
-      {!viewingDetails && results.length > 0 && (
-        <div className="flex flex-col items-center gap-2 w-full max-w-3xl">
-          <p className="mb-2 text-sm text-gray-400">Multiple results found. Please select one:</p>
-          {results.map((item, idx) => (
-            <button
-              key={idx}
-              onClick={() => handleSelect(item)}
-              className="bg-gray-700 hover:bg-gray-600 w-full text-left px-4 py-2 rounded-md text-sm"
-            >
-              {getFirstWords(item.question, 10)}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {viewingDetails && selectedResult && (
-        <div className="bg-gray-800 rounded-md shadow-md p-6 mt-6 w-full max-w-3xl">
-          <button
-            onClick={handleBack}
-            className="mb-4 text-sm text-blue-400 hover:underline"
-          >
-            ← Back to results
-          </button>
-          <p><strong>Chapter:</strong> {selectedResult.chapter}</p>
-          <p><strong>Source:</strong> {selectedResult.sourceDetails}</p>
-          <p><strong>Concept:</strong> {selectedResult.conceptTested}</p>
-          <p><strong>Concept Summary:</strong> {selectedResult.conceptSummary}</p>
-          <p><strong>Question:</strong> {selectedResult.question}</p>
-          <p><strong>Answer:</strong> {selectedResult.answer}</p>
-          <p><strong>How to Approach:</strong> {selectedResult.howToApproach}</p>
-        </div>
-      )}
+      {/* Sidebar */}
+      <div className="w-64 bg-[#1a1a1a] border-l border-gray-700 p-4 hidden md:block">
+        <h2 className="text-lg font-semibold mb-4">Categories</h2>
+        <ul className="space-y-2 text-sm">
+          <li><a href="#" className="hover:text-blue-400">New Chat</a></li>
+          <li><a href="#" className="hover:text-blue-400">All</a></li>
+          <li><a href="#" className="hover:text-blue-400">CA Final</a></li>
+          <li><a href="#" className="hover:text-blue-400">CA Inter</a></li>
+          <li><a href="#" className="hover:text-blue-400">CA Foundation</a></li>
+          <li><a href="#" className="hover:text-blue-400">CMA Final</a></li>
+          <li><a href="#" className="hover:text-blue-400">CMA Inter</a></li>
+          <li><a href="#" className="hover:text-blue-400">CMA Foundation</a></li>
+          <li><a href="#" className="hover:text-blue-400">CS Professional</a></li>
+          <li><a href="#" className="hover:text-blue-400">CS Executive</a></li>
+          <li><a href="#" className="hover:text-blue-400">CS Foundation</a></li>
+        </ul>
+      </div>
     </div>
   );
 }

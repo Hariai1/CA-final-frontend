@@ -1,107 +1,134 @@
-import { useState } from "react";
-import "./index.css";
+import React, { useState } from 'react';
+import './index.css';
 
-function App() {
-  const [query, setQuery] = useState("");
-  const [results, setResults] = useState([]);
+const App = () => {
+  const [query, setQuery] = useState('');
+  const [matchedQuestions, setMatchedQuestions] = useState([]);
   const [selectedResult, setSelectedResult] = useState(null);
-  const [noResult, setNoResult] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [noResults, setNoResults] = useState(false);
 
   const handleSearch = async () => {
-    const res = await fetch("https://ca-final-backend.onrender.com/search", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query }),
-    });
-    const data = await res.json();
-    setResults(data.result || []);
+    if (!query.trim()) return;
+
+    setLoading(true);
     setSelectedResult(null);
-    setNoResult((data.result || []).length === 0);
+    setNoResults(false);
+
+    try {
+      const response = await fetch('https://ca-final-backend.onrender.com/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query }),
+      });
+
+      const data = await response.json();
+      const results = data.result || [];
+
+      if (results.length === 0) setNoResults(true);
+      else setMatchedQuestions(results);
+    } catch (error) {
+      console.error('Error:', error);
+    }
+
+    setLoading(false);
   };
 
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter") handleSearch();
+  const handleSelect = (result) => {
+    setSelectedResult(result);
+    setMatchedQuestions([]);
+    setNoResults(false);
+  };
+
+  const handleBack = () => {
+    setSelectedResult(null);
+    setNoResults(false);
   };
 
   return (
-    <div className="flex min-h-screen text-white">
-      {/* Main content area */}
-      <div className="flex flex-col justify-center items-center flex-grow p-8">
-        <h1 className="text-2xl md:text-3xl font-bold mb-6 text-center">
-          CA Final FR – Inventory Q&A Tool
-        </h1>
+    <div className="flex h-screen bg-gray-900 text-white">
+      {/* Left Sidebar */}
+      <div className="w-60 bg-gray-800 p-4 space-y-4">
+        <h2 className="text-lg font-bold border-b border-gray-700 pb-2">Categories</h2>
+        {[
+          'CA Final', 'CA Inter', 'CA Foundation',
+          'CMA Final', 'CMA Inter', 'CMA Foundation',
+          'CS Professional', 'CS Executive', 'CS Foundation'
+        ].map((cat) => (
+          <div key={cat} className="text-sm hover:bg-gray-700 p-2 rounded cursor-pointer">
+            {cat}
+          </div>
+        ))}
+      </div>
 
-        {!selectedResult && (
-          <>
-            <div className="flex w-full max-w-xl space-x-2 mb-4">
-              <input
-                className="w-full px-4 py-2 rounded text-black"
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Type your search (e.g., 'valuation of inventory')"
-              />
-              <button
-                onClick={handleSearch}
-                className="px-4 py-2 bg-white text-black rounded"
-              >
-                Search
-              </button>
-            </div>
-            {noResult && <p className="text-red-400 mt-4">No results found.</p>}
-            <div className="space-y-2 max-w-xl w-full mt-4">
-              {results.map((item, index) => (
-                <button
-                  key={index}
-                  onClick={() => setSelectedResult(item)}
-                  className="bg-gray-800 p-3 rounded w-full text-left hover:bg-gray-700"
-                >
-                  {item.question.split(" ").slice(0, 10).join(" ")}...
-                </button>
-              ))}
-            </div>
-          </>
+      {/* Main Content */}
+      <div className="flex-1 p-8 flex flex-col items-center">
+        <h1 className="text-3xl font-bold mb-6">CA Final Inventory Q&A</h1>
+
+        <div className="w-full max-w-2xl flex items-center">
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search..."
+            className="flex-grow p-3 text-black rounded-l-md border-2 border-r-0 border-gray-400"
+          />
+          <button
+            onClick={handleSearch}
+            className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-r-md hover:bg-blue-700"
+          >
+            Search
+          </button>
+        </div>
+
+        {/* No Results */}
+        {noResults && (
+          <div className="mt-4 text-red-400 text-sm">No results found.</div>
         )}
 
+        {/* Loading */}
+        {loading && (
+          <div className="mt-4 text-gray-300 text-sm">Searching...</div>
+        )}
+
+        {/* Matched Results List */}
+        {!selectedResult && matchedQuestions.length > 0 && (
+          <div className="mt-6 w-full max-w-3xl space-y-3">
+            <h2 className="text-lg font-semibold mb-2">Matched Questions:</h2>
+            {matchedQuestions.map((res, index) => (
+              <div
+                key={index}
+                onClick={() => handleSelect(res)}
+                className="bg-gray-800 p-4 rounded-md cursor-pointer hover:bg-gray-700"
+              >
+                {res.question?.split(' ').slice(0, 10).join(' ') + '...'}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Full Result */}
         {selectedResult && (
-          <div className="max-w-2xl w-full bg-gray-800 p-6 rounded mt-6">
+          <div className="mt-6 w-full max-w-4xl space-y-3 bg-gray-800 p-6 rounded-lg">
             <button
-              onClick={() => setSelectedResult(null)}
-              className="mb-4 text-sm text-blue-400 hover:underline"
+              onClick={handleBack}
+              className="mb-4 px-4 py-2 bg-gray-700 text-sm rounded hover:bg-gray-600"
             >
               ← Back to Results
             </button>
-            <p><strong>Chapter:</strong> {selectedResult.chapter}</p>
-            <p><strong>Source:</strong> {selectedResult.sourceDetails}</p>
-            <p><strong>Concept:</strong> {selectedResult.conceptTested}</p>
-            <p><strong>Concept Summary:</strong> {selectedResult.conceptSummary}</p>
-            <p><strong>Question:</strong> {selectedResult.question}</p>
-            <p><strong>Answer:</strong> {selectedResult.answer}</p>
-            <p><strong>How to Approach:</strong> {selectedResult.howToApproach}</p>
+
+            <div><strong>Chapter:</strong> {selectedResult.chapter}</div>
+            <div><strong>Source:</strong> {selectedResult.sourceDetails}</div>
+            <div><strong>Concept:</strong> {selectedResult.conceptTested}</div>
+            <div><strong>Concept Summary:</strong> {selectedResult.conceptSummary}</div>
+            <div><strong>Question:</strong> {selectedResult.question}</div>
+            <div><strong>Answer:</strong> {selectedResult.answer}</div>
+            <div><strong>How to Approach:</strong> {selectedResult.howToApproach}</div>
           </div>
         )}
       </div>
-
-      {/* Sidebar */}
-      <div className="w-64 bg-[#1a1a1a] border-l border-gray-700 p-4 hidden md:block">
-        <h2 className="text-lg font-semibold mb-4">Categories</h2>
-        <ul className="space-y-2 text-sm">
-          <li><a href="#" className="hover:text-blue-400">New Chat</a></li>
-          <li><a href="#" className="hover:text-blue-400">All</a></li>
-          <li><a href="#" className="hover:text-blue-400">CA Final</a></li>
-          <li><a href="#" className="hover:text-blue-400">CA Inter</a></li>
-          <li><a href="#" className="hover:text-blue-400">CA Foundation</a></li>
-          <li><a href="#" className="hover:text-blue-400">CMA Final</a></li>
-          <li><a href="#" className="hover:text-blue-400">CMA Inter</a></li>
-          <li><a href="#" className="hover:text-blue-400">CMA Foundation</a></li>
-          <li><a href="#" className="hover:text-blue-400">CS Professional</a></li>
-          <li><a href="#" className="hover:text-blue-400">CS Executive</a></li>
-          <li><a href="#" className="hover:text-blue-400">CS Foundation</a></li>
-        </ul>
-      </div>
     </div>
   );
-}
+};
 
 export default App;

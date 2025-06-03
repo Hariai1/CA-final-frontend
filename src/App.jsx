@@ -25,7 +25,7 @@ function App() {
 
   const handleSelect = (result) => {
     setSelectedResult(result);
-    setResults([]); // Hide matched list
+    setResults([]); // Hide matched list after selection
   };
 
   const truncateQuestion = (text) => {
@@ -34,48 +34,46 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4">
-      <div className="max-w-2xl mx-auto">
-        <h1 className="text-2xl font-bold mb-4 text-center">CA Final FR Q&A Search</h1>
-        <div className="flex mb-4">
+    <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center px-4">
+      <div className="w-full max-w-3xl">
+        <h1 className="text-3xl font-bold text-center mb-6">CA Final FR – Inventory Q&A Tool</h1>
+
+        <div className="flex justify-center mb-6">
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="flex-grow border border-gray-400 p-2 rounded-l"
-            placeholder="Enter your search query..."
+            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+            placeholder="Type your search (e.g., 'valuation of inventory')"
+            className="w-full max-w-xl px-4 py-2 border border-gray-400 text-black rounded-l"
           />
           <button
             onClick={handleSearch}
-            className="bg-blue-600 text-white px-4 py-2 rounded-r hover:bg-blue-700"
+            className="bg-white text-black font-semibold px-4 py-2 rounded-r hover:bg-gray-200"
           >
             Search
           </button>
         </div>
 
-        {loading && <p className="text-center text-gray-600">Searching...</p>}
+        {loading && <p className="text-center text-gray-300">Searching...</p>}
 
-        {/* Show Matched Questions */}
         {results.length > 0 && !selectedResult && (
-          <div className="bg-white p-4 rounded shadow">
-            <h2 className="font-semibold mb-2">Matched Questions</h2>
-            <ul className="space-y-2">
-              {results.map((item, index) => (
-                <li
-                  key={index}
-                  className="cursor-pointer text-blue-700 hover:underline"
-                  onClick={() => handleSelect(item)}
-                >
-                  {truncateQuestion(item.question)}
-                </li>
-              ))}
-            </ul>
+          <div className="bg-white text-black p-4 rounded shadow space-y-2">
+            <h2 className="font-semibold mb-2">Multiple results found. Please select one:</h2>
+            {results.map((item, index) => (
+              <div
+                key={index}
+                className="cursor-pointer hover:text-blue-700"
+                onClick={() => handleSelect(item)}
+              >
+                {truncateQuestion(item.question)}
+              </div>
+            ))}
           </div>
         )}
 
-        {/* Show Selected Full Result */}
         {selectedResult && (
-          <div className="mt-6 bg-white p-6 rounded shadow space-y-4">
+          <div className="mt-8 bg-white text-black p-6 rounded shadow space-y-3">
             <p><strong>Chapter:</strong> {selectedResult.chapter}</p>
             <p><strong>Source:</strong> {selectedResult.sourceDetails}</p>
             <p><strong>Concept:</strong> {selectedResult.conceptTested}</p>

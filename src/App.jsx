@@ -20,7 +20,7 @@ const App = () => {
     setNoResults(false);
 
     try {
-      const response = await fetch('https://ca-final-backend.onrender.com/search', {
+      const response = await fetch('https://ca-final-backend.onrender.com/process-query', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: searchText }),

@@ -146,7 +146,7 @@ const App = () => {
         )}
 
         {selectedResult && (
-          <div className="mt-6 w-full max-w-4xl space-y-3 bg-gray-800 p-6 rounded-lg">
+          <div className="mt-6 w-full max-w-4xl bg-gray-800 px-6 pt-4 pb-2 rounded-lg space-y-3">
             <button
               onClick={handleBack}
               className="mb-4 px-4 py-2 bg-gray-700 text-sm rounded hover:bg-gray-600"
@@ -156,10 +156,37 @@ const App = () => {
             <div><strong>Chapter:</strong> {selectedResult.chapter || "N/A"}</div>
             <div><strong>Source:</strong> {selectedResult.sourceDetails || "N/A"}</div>
             <div><strong>Concept:</strong> {selectedResult.conceptTested || "N/A"}</div>
-            <div><strong>Concept Summary:</strong> {selectedResult.conceptSummary || "N/A"}</div>
-            <div><strong>Question:</strong> {selectedResult.question || "N/A"}</div>
-            <div><strong>Answer:</strong> {selectedResult.answer || "N/A"}</div>
-            <div><strong>How to Approach:</strong> {selectedResult.howToApproach || "N/A"}</div>
+            <div>
+              <strong>Concept Summary:</strong>
+              <article
+                className="prose prose-slate max-w-none whitespace-pre-wrap text-white text-justify"
+                dangerouslySetInnerHTML={{ __html: selectedResult.conceptSummary }}
+              />
+            </div>
+
+            <div>
+              <strong>Question:</strong>
+              <article
+                className="prose prose-slate max-w-none whitespace-pre-wrap text-white text-justify"
+                dangerouslySetInnerHTML={{ __html: selectedResult.question }}
+              />
+            </div>
+
+            <div>
+              <strong>Answer:</strong>
+              <article
+                className="prose prose-slate max-w-none whitespace-pre-wrap text-white text-justify"
+                dangerouslySetInnerHTML={{ __html: selectedResult.answer }}
+              />
+            </div>
+
+            <div>
+              <strong>How to Approach:</strong>
+              <article
+                className="prose prose-slate max-w-none whitespace-pre-wrap text-white text-justify"
+                dangerouslySetInnerHTML={{ __html: selectedResult.howToApproach }}
+              />
+            </div>
           </div>
         )}
       </div>

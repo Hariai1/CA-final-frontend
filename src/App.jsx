@@ -2,6 +2,103 @@ import React, { useState } from 'react';
 import './index.css';
 import { Search } from "lucide-react"; // ⬅️ Add this at top if not already
 
+const courseSubjects = {
+  "CA Final": [
+    "Group I",
+    "Financial Reporting",
+    "Advanced Financial Management",
+    "Advanced Auditing, Assurance and Professional Ethics",
+    "Group II",
+    "Direct Tax Laws & International Taxation",
+    "Indirect Tax Laws",
+    "Integrated Business Solutions"
+  ],
+  "CA Inter": [
+    "Group I",
+    "Advanced Accounting",
+    "Corporate and other Laws",
+    "Taxation",
+    "Group II",
+    "Cost and Management Accounting",
+    "Auditing and Ethics",
+    "Financial Management and Strategic Management"
+  ],
+  "CA Foundation": [
+    "Accounting",
+    "Business Laws",
+    "Qunatitative Aptitude",
+    "Business Economics"
+  ],
+  "CMA Final": [
+    "Group III",
+    "Corporate and Economic Laws",
+    "Strategic Financial Management",
+    "Direct Tax Laws and International Taxation",
+    "Strategic Cost Management",
+    "Group IV",
+    "Cost and Management Audit",
+    "Corporate Financial Reporting",
+    "Indirect Tax Laws and practice",
+    "Elective Paper"
+  ],
+  "CMA Inter": [
+    "Group I",
+    "Business Laws and Ethics",
+    "Financial Accounting",
+    "Direct and Indirect Taxation",
+    "Cost Accounting",
+    "Group II",
+    "Operations Management and Strategic Management",
+    "Corporate Accounting and Auditing",
+    "Financial Management and Business Data Analytics",
+    "Management Accounting"
+  ],
+  "CMA Foundation": [
+    "Fundamentals of business Laws and Business Communications",
+    "Fundamentals of Financial and cost Accounting",
+    "Fundamentals of Business Mathematics and Statistics",
+    "Fundamentals of Business Economics and Management"
+  ],
+  "CS Executive": [
+    "Group 1",
+    "Jurisprudence, Interpretation and General Laws",
+    "Company Law & Practice",
+    "Setting up of Business, Industrial & Labour Laws",
+    "Corporate Accounting & Financial Management",
+    "Group 2",
+    "Capital Markets & Securities Laws",
+    "Economics, Commercial & Intellectual Property Law",
+    "Tax Laws and Practice"
+  ],
+  "CS Foundation": [
+    "Business Environment and Law",
+    "Business Management, Ethics & Entrepreneurship",
+    "Business Economics",
+    "Fundamentals of Accounting and Auditing"
+  ],
+  "CS Professional": [
+    "Group 1",
+    "Environmental, Social and Governance (ESG)",
+    "Drafting, Pleadings & Appearances",
+    "Compliance Management, Audit & Due Diligence",
+    "Elective 1",
+    "CSR & Social Governance",
+    "Internal & Forensic Audit",
+    "Intellectual Property Rights",
+    "Artificial Intelligence, Data Analytics and Cyber Security",
+    "Advanced Direct Tax Laws & Practice",
+    "Group 2",
+    "Strategic Management & Corporate Finance",
+    "Corporate Restructuring, Valuation & Insolvency Corrigendum",
+    "Elective 2",
+    "Arbitration, Mediation & Conciliation",
+    "GST & Corporate Tax Planning",
+    "Labour Laws & Practice",
+    "Banking & Insurance – Laws & Practice",
+    "Insolvency and Bankruptcy – Law & Practice Corrigendum"
+  ]
+};
+
 const App = () => {
   const [query, setQuery] = useState('');
   const [matchedQuestions, setMatchedQuestions] = useState([]);
@@ -11,6 +108,11 @@ const App = () => {
   const [cachedResults, setCachedResults] = useState([]);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [searchHistory, setSearchHistory] = useState([]);
+  const [selectedCourse, setSelectedCourse] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [customApproach, setCustomApproach] = useState('');
+  const [userId, setUserId] = useState('student_123'); // Replace with actual logic later
+  const [userRole, setUserRole] = useState('student'); // 'admin' or 'student'
 
   const handleSearch = async (customQuery) => {
     const searchText = customQuery || query;
@@ -21,14 +123,18 @@ const App = () => {
     setNoResults(false);
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/process`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/process`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: searchText }),
       });
 
       const data = await response.json();
-      const results = Object.values(data.full_data || {});
+      const fullData = data.full_data || {};
+      const results = Object.entries(fullData).map(([_, item]) => ({
+        ...item,
+        id: item.question_id,  // 👈 Make sure `id` exists for selection
+      }));
 
       if (results.length === 0) {
         setMatchedQuestions([]);
@@ -58,9 +164,24 @@ const App = () => {
     if (e.key === 'Enter') handleSearch();
   };
 
-  const handleSelect = (result) => {
+  const handleSelect = async (result) => {
+    if (!result?.id) {
+      console.error("❌ Missing question ID in selected result");
+      return;
+    }
+
     setSelectedResult(result);
     window.scrollTo({ top: 0, behavior: "smooth" });
+    setIsEditing(false);
+    setCustomApproach(''); // Reset before fetching
+
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/approach/get?question_id=${result.id}&user_id=${userId}`);
+      const data = await res.json();
+      setCustomApproach(data.custom_approach || '');
+    } catch (err) {
+      console.error("Error loading custom approach:", err);
+    }
   };
 
   const handleBack = () => {
@@ -68,34 +189,81 @@ const App = () => {
     setMatchedQuestions(cachedResults);
   };
 
+  const handleSaveApproach = async () => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/save-approach`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          question_id: selectedResult.id,
+          custom_approach: customApproach,
+        }),
+      });
+
+      if (response.ok) {
+        alert("Saved successfully!");
+        setIsEditing(false);
+      } else {
+        alert("Failed to save.");
+      }
+    } catch (err) {
+      console.error("Save failed:", err);
+      alert("Error saving.");
+    }
+  };
+
   return (
     <div className="flex h-screen bg-gray-900 text-white relative">
-      {/* Sidebar Toggle Button */}
-      <button
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="absolute top-4 left-4 z-50 text-white bg-gray-700 px-3 py-2 text-sm rounded hover:bg-gray-600"
-      >
-        {sidebarOpen ? '❌' : '☰'}
-      </button>
+      
+      {/* Sidebar Toggle Button - Fixed on Top Left */}
+      <div className="flex h-screen bg-gray-900 text-white relative">
+        <button
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          className="absolute top-4 left-4 z-50 bg-gray-800 text-white px-3 py-2 rounded shadow hover:bg-gray-700 focus:outline-none"
+        >
+          {sidebarOpen ? '≡' : '≡'}
+        </button>
+      </div>
 
       {/* Sidebar */}
       <div
-        className={`${sidebarOpen ? 'w-60' : 'w-0'} transition-all duration-300 bg-gray-800 overflow-hidden`}
+        className={`fixed sm:relative z-40 ${sidebarOpen ? 'w-60' : 'w-0'} transition-all duration-300 bg-gray-800 h-screen overflow-y-auto`}
       >
-        <div className="p-4">
+        <div className="p-4 flex flex-col h-full justify-between">
           {sidebarOpen && (
             <>
-              <h2 className="text-lg font-bold border-b border-gray-700 pb-2 mt-4">Categories</h2>
-              <div className="space-y-2 mt-2">
-                {[
-                  'CA Final', 'CA Inter', 'CA Foundation',
-                  'CMA Final', 'CMA Inter', 'CMA Foundation',
-                  'CS Professional', 'CS Executive', 'CS Foundation',
-                ].map((cat) => (
-                  <div key={cat} className="text-sm hover:bg-gray-700 p-2 rounded cursor-pointer">
-                    {cat}
-                  </div>
+              <select
+                onChange={(e) => setSelectedCourse(e.target.value)}
+                className="w-full mt-12 p-2 bg-gray-700 text-white rounded"
+                defaultValue=""
+              >
+                <option value="" disabled>Select a level</option>
+                {Object.keys(courseSubjects).map((course, idx) => (
+                  <option key={idx} value={course}>{course}</option>
                 ))}
+              </select>
+
+              <div className="space-y-2 mt-2">
+                {selectedCourse && (
+                  <div className="mt-4 space-y-2">
+                    {courseSubjects[selectedCourse].map((subject, idx) => (
+                      <div
+                        key={idx}
+                        className="text-sm hover:bg-gray-700 p-2 rounded cursor-pointer"
+                        onClick={() => {
+                          console.log("Selected subject:", subject);
+                          // Optionally trigger filtering or search
+                        }}
+                      >
+                        {subject}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              
               </div>
 
               <h2 className="text-md font-semibold border-b border-gray-600 pb-1 mt-6">Search History</h2>
@@ -146,7 +314,7 @@ const App = () => {
         )}
         
         {!selectedResult && matchedQuestions.length > 0 && (
-          <div className="mt-2 w-full max-w-3xl space-y-4">
+          <div className="mt-2 w-full max-w-3xl space-y-4 px-2 sm:px-0">
             <h2 className="text-xl font-bold mb-4 text-white">Matched Questions</h2>
 
             {matchedQuestions.map((res, index) => (
@@ -205,20 +373,50 @@ const App = () => {
               />
             </div>
 
+            
             <div>
               <h3 className="text-lg font-bold mb-1 text-white">💡 How to Approach</h3>
-              <article
-                className="prose prose-slate max-w-none whitespace-pre-wrap text-white text-justify"
-                dangerouslySetInnerHTML={{ __html: selectedResult.howToApproach }}
-              />
+
+              {isEditing ? (
+                <>
+                  <textarea
+                    value={customApproach || selectedResult.howToApproach}
+                    onChange={(e) => setCustomApproach(e.target.value)}
+                    className="w-full p-3 rounded text-black text-sm bg-white border border-gray-300"
+                    rows={6}
+                  />
+                  <button
+                    onClick={handleSaveApproach}
+                    className="mt-2 px-4 py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700"
+                  >
+                    Save
+                  </button>
+                </>
+              ) : (
+                <>
+                  <article
+                    className="prose prose-slate max-w-none whitespace-pre-wrap text-white text-justify"
+                    dangerouslySetInnerHTML={{
+                      __html: customApproach || selectedResult.howToApproach,
+                    }}
+                  />
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="mt-2 px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                  >
+                    Edit
+                  </button>
+                </>
+              )}
             </div>
+
           </div>
         )}
       </div>
 
       {/* Fixed Bottom Search Bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-gray-900 p-4 border-t border-gray-700 flex justify-center z-40">
-        <div className="w-full max-w-3xl flex relative">
+      <div className={`fixed bottom-0 right-0 bg-gray-900 p-4 border-t border-gray-700 z-40 transition-all duration-300 ${sidebarOpen ? 'ml-60 w-[calc(100%-15rem)]'  : 'ml-0 w-full'}`}>
+        <div className="w-full max-w-3xl flex mx-auto relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
           <input
             type="text"
@@ -226,11 +424,11 @@ const App = () => {
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Search by keyword, chapter, or question type..."
-            className="flex-grow pl-10 pr-4 py-3 text-base text-black rounded-l-md border border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-grow pl-10 pr-4 py-2 text-sm sm:text-base text-black rounded-l-md border border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <button
             onClick={() => handleSearch()}
-            className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-r-md hover:bg-blue-700"
+            className="px-4 py-2 sm:px-6 sm:py-3 bg-blue-600 text-white font-semibold rounded-r-md hover:bg-blue-700"
           >
             Search
           </button>

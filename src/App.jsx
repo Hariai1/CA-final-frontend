@@ -1,103 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import './index.css';
-import { Search } from "lucide-react"; // ⬅️ Add this at top if not already
 
-const courseSubjects = {
-  "CA Final": [
-    "Group I",
-    "Financial Reporting",
-    "Advanced Financial Management",
-    "Advanced Auditing, Assurance and Professional Ethics",
-    "Group II",
-    "Direct Tax Laws & International Taxation",
-    "Indirect Tax Laws",
-    "Integrated Business Solutions"
-  ],
-  "CA Inter": [
-    "Group I",
-    "Advanced Accounting",
-    "Corporate and other Laws",
-    "Taxation",
-    "Group II",
-    "Cost and Management Accounting",
-    "Auditing and Ethics",
-    "Financial Management and Strategic Management"
-  ],
-  "CA Foundation": [
-    "Accounting",
-    "Business Laws",
-    "Qunatitative Aptitude",
-    "Business Economics"
-  ],
-  "CMA Final": [
-    "Group III",
-    "Corporate and Economic Laws",
-    "Strategic Financial Management",
-    "Direct Tax Laws and International Taxation",
-    "Strategic Cost Management",
-    "Group IV",
-    "Cost and Management Audit",
-    "Corporate Financial Reporting",
-    "Indirect Tax Laws and practice",
-    "Elective Paper"
-  ],
-  "CMA Inter": [
-    "Group I",
-    "Business Laws and Ethics",
-    "Financial Accounting",
-    "Direct and Indirect Taxation",
-    "Cost Accounting",
-    "Group II",
-    "Operations Management and Strategic Management",
-    "Corporate Accounting and Auditing",
-    "Financial Management and Business Data Analytics",
-    "Management Accounting"
-  ],
-  "CMA Foundation": [
-    "Fundamentals of business Laws and Business Communications",
-    "Fundamentals of Financial and cost Accounting",
-    "Fundamentals of Business Mathematics and Statistics",
-    "Fundamentals of Business Economics and Management"
-  ],
-  "CS Executive": [
-    "Group 1",
-    "Jurisprudence, Interpretation and General Laws",
-    "Company Law & Practice",
-    "Setting up of Business, Industrial & Labour Laws",
-    "Corporate Accounting & Financial Management",
-    "Group 2",
-    "Capital Markets & Securities Laws",
-    "Economics, Commercial & Intellectual Property Law",
-    "Tax Laws and Practice"
-  ],
-  "CS Foundation": [
-    "Business Environment and Law",
-    "Business Management, Ethics & Entrepreneurship",
-    "Business Economics",
-    "Fundamentals of Accounting and Auditing"
-  ],
-  "CS Professional": [
-    "Group 1",
-    "Environmental, Social and Governance (ESG)",
-    "Drafting, Pleadings & Appearances",
-    "Compliance Management, Audit & Due Diligence",
-    "Elective 1",
-    "CSR & Social Governance",
-    "Internal & Forensic Audit",
-    "Intellectual Property Rights",
-    "Artificial Intelligence, Data Analytics and Cyber Security",
-    "Advanced Direct Tax Laws & Practice",
-    "Group 2",
-    "Strategic Management & Corporate Finance",
-    "Corporate Restructuring, Valuation & Insolvency Corrigendum",
-    "Elective 2",
-    "Arbitration, Mediation & Conciliation",
-    "GST & Corporate Tax Planning",
-    "Labour Laws & Practice",
-    "Banking & Insurance – Laws & Practice",
-    "Insolvency and Bankruptcy – Law & Practice Corrigendum"
-  ]
-};
+const QuestionDetail = React.lazy(() => import('./QuestionDetail.jsx'));
+
+// course subjects are lazy-loaded to reduce initial JS size
 
 const App = () => {
   const [query, setQuery] = useState('');
@@ -113,6 +19,16 @@ const App = () => {
   const [customApproach, setCustomApproach] = useState('');
   const [userId, setUserId] = useState('student_123'); // Replace with actual logic later
   const [userRole, setUserRole] = useState('student'); // 'admin' or 'student'
+  const [courseSubjectsMap, setCourseSubjectsMap] = useState(null);
+
+  useEffect(() => {
+    const scheduleLoad = () => import('./courseSubjects.js').then((m) => setCourseSubjectsMap(m.default)).catch(() => {});
+    if ('requestIdleCallback' in window) {
+      window.requestIdleCallback(scheduleLoad);
+    } else {
+      setTimeout(scheduleLoad, 0);
+    }
+  }, []);
 
   const handleSearch = async (customQuery) => {
     const searchText = customQuery || query;
@@ -239,22 +155,22 @@ const App = () => {
                 onChange={(e) => setSelectedCourse(e.target.value)}
                 className="w-full mt-12 p-2 bg-gray-700 text-white rounded"
                 defaultValue=""
+                disabled={!courseSubjectsMap}
               >
-                <option value="" disabled>Select a level</option>
-                {Object.keys(courseSubjects).map((course, idx) => (
+                <option value="" disabled>{courseSubjectsMap ? 'Select a level' : 'Loading...'}</option>
+                {courseSubjectsMap && Object.keys(courseSubjectsMap).map((course, idx) => (
                   <option key={idx} value={course}>{course}</option>
                 ))}
               </select>
 
               <div className="space-y-2 mt-2">
-                {selectedCourse && (
+                {selectedCourse && courseSubjectsMap && (
                   <div className="mt-4 space-y-2">
-                    {courseSubjects[selectedCourse].map((subject, idx) => (
+                    {courseSubjectsMap[selectedCourse].map((subject, idx) => (
                       <div
                         key={idx}
                         className="text-sm hover:bg-gray-700 p-2 rounded cursor-pointer"
                         onClick={() => {
-                          console.log("Selected subject:", subject);
                           // Optionally trigger filtering or search
                         }}
                       >
@@ -335,89 +251,24 @@ const App = () => {
         )}
 
         {selectedResult && (
-          <div className="mt-6 w-full max-w-4xl bg-gray-800 text-white px-8 pt-6 pb-4 rounded-2xl shadow-md space-y-6">
-            <button
-              onClick={handleBack}
-              className="mb-4 px-4 py-2 bg-gray-700 text-white text-sm rounded hover:bg-gray-600"
-            >
-              ← Back to Results
-            </button>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-6 text-sm text-gray-300">
-              <div><span className="font-semibold">Chapter:</span> {selectedResult.chapter || "N/A"}</div>
-              <div><span className="font-semibold">Source:</span> {selectedResult.sourceDetails || "N/A"}</div>
-              <div><span className="font-semibold">Concept:</span> {selectedResult.conceptTested || "N/A"}</div>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-bold mb-1 text-white">📘 Concept Summary</h3>
-              <article
-                className="prose prose-slate max-w-none whitespace-pre-wrap text-white text-justify"
-                dangerouslySetInnerHTML={{ __html: selectedResult.conceptSummary }}
-              />
-            </div>
-
-            <div>
-              <h3 className="text-lg font-bold mb-1 text-white">📝 Question</h3>
-              <article
-                className="prose prose-slate max-w-none whitespace-pre-wrap text-white text-justify"
-                dangerouslySetInnerHTML={{ __html: selectedResult.question }}
-              />
-            </div>
-
-            <div>
-              <h3 className="text-lg font-bold mb-1 text-white">✅ Answer</h3>
-              <article
-                className="prose prose-slate max-w-none whitespace-pre-wrap text-white text-justify"
-                dangerouslySetInnerHTML={{ __html: selectedResult.answer }}
-              />
-            </div>
-
-            
-            <div>
-              <h3 className="text-lg font-bold mb-1 text-white">💡 How to Approach</h3>
-
-              {isEditing ? (
-                <>
-                  <textarea
-                    value={customApproach || selectedResult.howToApproach}
-                    onChange={(e) => setCustomApproach(e.target.value)}
-                    className="w-full p-3 rounded text-black text-sm bg-white border border-gray-300"
-                    rows={6}
-                  />
-                  <button
-                    onClick={handleSaveApproach}
-                    className="mt-2 px-4 py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700"
-                  >
-                    Save
-                  </button>
-                </>
-              ) : (
-                <>
-                  <article
-                    className="prose prose-slate max-w-none whitespace-pre-wrap text-white text-justify"
-                    dangerouslySetInnerHTML={{
-                      __html: customApproach || selectedResult.howToApproach,
-                    }}
-                  />
-                  <button
-                    onClick={() => setIsEditing(true)}
-                    className="mt-2 px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
-                  >
-                    Edit
-                  </button>
-                </>
-              )}
-            </div>
-
-          </div>
+          <Suspense fallback={<div className="text-sm text-gray-400 mt-6">Loading details…</div>}>
+            <QuestionDetail
+              selectedResult={selectedResult}
+              isEditing={isEditing}
+              customApproach={customApproach}
+              onBack={handleBack}
+              onEditToggle={() => setIsEditing(true)}
+              onChangeApproach={setCustomApproach}
+              onSaveApproach={handleSaveApproach}
+            />
+          </Suspense>
         )}
       </div>
 
       {/* Fixed Bottom Search Bar */}
       <div className={`fixed bottom-0 right-0 bg-gray-900 p-4 border-t border-gray-700 z-40 transition-all duration-300 ${sidebarOpen ? 'ml-60 w-[calc(100%-15rem)]'  : 'ml-0 w-full'}`}>
         <div className="w-full max-w-3xl flex mx-auto relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+          <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
           <input
             type="text"
             value={query}
